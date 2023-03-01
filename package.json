@@ -1,0 +1,22 @@
+{
+  "name": "labecommerce-backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "clear && node ./index.js",
+    "par-impar": "clear && node ./par-ou-impar.js",
+    "jokenpo": "clear && node ./pedra-papel-tesoura.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Rebeccix/labecommerce-backend.git"
+  },
+  "author": "rebecca",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Rebeccix/labecommerce-backend/issues"
+  },
+  "homepage": "https://github.com/Rebeccix/labecommerce-backend#readme"
+}
