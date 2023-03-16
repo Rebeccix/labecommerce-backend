@@ -7,7 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "clear && tsc && node ./build/index.js",
     "par-impar": "clear && node ./par-ou-impar.js",
-    "jokenpo": "clear && node ./pedra-papel-tesoura.js"
+    "jokenpo": "clear && node ./pedra-papel-tesoura.js",
+    "dev": "ts-node-dev src/index.ts"
   },
   "repository": {
     "type": "git",
@@ -20,9 +21,14 @@
   },
   "homepage": "https://github.com/Rebeccix/labecommerce-backend#readme",
   "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
     "typescript": "^4.9.5"
   },
   "devDependencies": {
-    "@types/node": "^18.14.4"
+    "@types/cors": "^2.8.13",
+    "@types/express": "^4.17.17",
+    "@types/node": "^18.14.4",
+    "ts-node-dev": "^2.0.0"
   }
 }
