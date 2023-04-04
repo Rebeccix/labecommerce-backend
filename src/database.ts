@@ -8,12 +8,12 @@ export enum CATEGORY {
 
 export const user: Array<TUser> = [
   {
-    id: "1",
+    id: "u001",
     email: "becca@gmail",
     password: "123",
   },
   {
-    id: "2",
+    id: "u002",
     email: "catiuzi@gmail",
     password: "321",
   },
@@ -21,13 +21,13 @@ export const user: Array<TUser> = [
 
 export const product: Array<TProduct> = [
   {
-    id: "1",
+    id: "p001",
     name: "tv",
     price: 5,
     category: CATEGORY.ELECTRONICS,
   },
   {
-    id: "2",
+    id: "p002",
     name: "brinco",
     price: 2,
     category: CATEGORY.ACCESSORIES,
@@ -36,14 +36,14 @@ export const product: Array<TProduct> = [
 
 export const purchase: Array<TPurchase> = [
   {
-    userId: "1",
-    productId: "1",
+    userId: "u001",
+    productId: "p001",
     quantity: 2,
     totalPrice: 10,
   },
   {
-    userId: "2",
-    productId: "2",
+    userId: "u002",
+    productId: "p00 2",
     quantity: 5,
     totalPrice: 10,
   },
