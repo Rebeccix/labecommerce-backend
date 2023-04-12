@@ -21,8 +21,11 @@
   },
   "homepage": "https://github.com/Rebeccix/labecommerce-backend#readme",
   "dependencies": {
+    "@types/knex": "^0.16.1",
     "cors": "^2.8.5",
     "express": "^4.18.2",
+    "knex": "^2.4.2",
+    "sqlite3": "^5.1.6",
     "typescript": "^4.9.5"
   },
   "devDependencies": {

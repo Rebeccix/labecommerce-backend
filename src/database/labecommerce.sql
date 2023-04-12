@@ -1,5 +1,8 @@
 -- Active: 1679962955574@@127.0.0.1@3306
-
+DROP TABLE users;
+DROP TABLE products;
+DROP TABLE purchases;
+DROP TABLE purchases_products;
 -- create tables --
 
 -- create users table

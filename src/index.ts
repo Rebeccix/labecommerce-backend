@@ -12,7 +12,7 @@ import {
   createPurchase,
   getAllPurchasesFromUserId,
 } from "./database";
-
+import { db } from "./database/knex";
 import express, { Request, Response } from "express";
 import cors from "cors";
 import { TProduct, TPurchase, TUser } from "./types";
@@ -31,10 +31,11 @@ app.get("/ping", (req: Request, res: Response) => {
   res.send("Pong!");
 });
 
-app.get("/users", (req: Request, res: Response) => {
+app.get("/users", async (req: Request, res: Response) => {
   try {
-    res.status(200).send(user);
-  } catch (error) {
+    const result = await db.raw(`SELECT * FROM users;`);
+    res.status(200).send({ result });
+  } catch (error: any) {
     if (res.statusCode === 200) {
       res.status(500);
     }
@@ -42,16 +43,18 @@ app.get("/users", (req: Request, res: Response) => {
   }
 });
 
-app.get("/users/:id/purchases", (req: Request, res: Response) => {
+app.get("/users/:id/purchases", async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
+    const [purchaseExist]: {}[] = await db.raw(`SELECT * FROM purchases WHERE buyer = "${id}"`)
+
     if (!id) {
       res.status(400);
       throw new Error("Usuário não existe");
     }
-    const result: TPurchase[] = purchase.filter((item) => item.userId === id);
-    res.status(200).send(result);
-  } catch (error) {
+    res.status(200).send({purchaseExist});
+  } catch (error: any) {
     if (res.statusCode === 200) {
       res.status(500);
     }
@@ -59,9 +62,10 @@ app.get("/users/:id/purchases", (req: Request, res: Response) => {
   }
 });
 
-app.get("/products", (req: Request, res: Response) => {
+app.get("/products", async (req: Request, res: Response) => {
   try {
-    res.status(200).send(product);
+    const result = await db.raw(`SELECT * FROM products;`);
+    res.status(200).send({ result });
   } catch (error) {
     if (res.statusCode === 200) {
       res.status(500);
@@ -70,26 +74,27 @@ app.get("/products", (req: Request, res: Response) => {
   }
 });
 
-app.get("/products/search", (req: Request, res: Response) => {
+app.get("/products/search", async (req: Request, res: Response) => {
   try {
     const query = req.query.q;
 
     if (query === undefined) {
-      if (query.length < 0) {
-        res.status(400);
-        throw new Error("Deve possuir pelo menos um caractere");
-      }
       res.status(400);
       throw new Error("Deve ser uma string");
     }
 
     if (typeof query === "string") {
-      const result = product.filter((item) =>
-        item.name.toLowerCase().includes(query)
+      if (query.length <= 0) {
+        res.status(400);
+        throw new Error("Deve possuir pelo menos um caractere");
+      }
+      const result = await db.raw(
+        `SELECT * FROM products WHERE name LIKE '%${query}%'`
       );
-      res.status(200).send(result);
+      console.log(result)
+      res.status(200).send({result});
     }
-  } catch (error) {
+  } catch (error: any) {
     if (res.statusCode === 200) {
       res.status(500);
     }
@@ -97,38 +102,44 @@ app.get("/products/search", (req: Request, res: Response) => {
   }
 });
 
-app.get("/products/:id", (req: Request, res: Response) => {
+app.get("/products/:id", async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    if (product.find((item) => item.id === id) === undefined) {
+    const [productsExist]: {}[] = await db.raw(`SELECT * FROM products WHERE id = "${id}";`)
+
+    if (!productsExist) {
       res.status(400);
       throw new Error("Produto não encontrado");
     }
-    res.status(200).send(product.find((item) => item.id === id));
-  } catch (error) {}
+    res.status(200).send(productsExist);
+  } catch (error: any) {}
 });
 
-app.post("/users", (req: Request, res: Response) => {
-  //   const newUser: TUser = {
-  //     id: req.body.id as string,
-  //     email: req.body.email as string,
-  //     password: req.body.password as string,
-  //   };
-
+app.post("/users", async (req: Request, res: Response) => {
   try {
-    const { id, email, password } = req.body;
+    const id: string = Math.floor(Date.now() * Math.random()).toString(36);
+    const { name, email, password } = req.body;
 
-    if (
-      user.find((item) => item.id === id) !== undefined ||
-      user.find((item) => item.email == email) !== undefined
-    ) {
+    const [idExist]: {}[] = await db.raw(
+      `SELECT * FROM users WHERE id = "${id}";`
+    );
+    const [emailExist]: {}[] = await db.raw(
+      `SELECT * FROM users WHERE email = "${email}";`
+    );
+
+    if (idExist || emailExist) {
+      console.log(idExist);
+
       res.status(400);
       throw new Error("Usuario já está cadastrado");
     }
-    user.push({ id, email, password });
+
+    await db.raw(
+      `INSERT INTO users(id, name, email, password) VALUES ("${id}", "${name}", "${email}", "${password}");`
+    );
     res.status(201).send("Cadastro realizado com sucesso");
-  } catch (error) {
+  } catch (error: any) {
     if (res.statusCode === 200) {
       res.status(500);
     }
@@ -136,22 +147,18 @@ app.post("/users", (req: Request, res: Response) => {
   }
 });
 
-app.post("/products", (req: Request, res: Response) => {
-  //   const newProduct: TProduct = {
-  //     id: req.body.id as string,
-  //     name: req.body.name as string,
-  //     price: req.body.price as number,
-  //     category: req.body.category as string,
-  //   };
-
+app.post("/products", async (req: Request, res: Response) => {
   try {
-    const { id, name, price, category } = req.body;
+    const { name, price, description, image_url } = req.body;
+    const id: string = Math.floor(Date.now() * Math.random()).toString(36);
 
-    if (product.find((item) => item.id === id) !== undefined) {
+    const [productExist]: {}[] = await db.raw(`SELECT * FROM products WHERE id = "${id}";`)
+    
+    if (productExist) {
       res.status(400);
       throw new Error("Produto já cadastrado");
     }
-    product.push({ id, name, price, category });
+    await db.raw(`INSERT INTO products VALUES ("${id}", "${name}", "${price}", "${description}", "${image_url}");`)
     res.status(201).send("Produto cadastrado com sucesso");
   } catch (error) {
     if (res.statusCode === 200) {
@@ -161,30 +168,18 @@ app.post("/products", (req: Request, res: Response) => {
   }
 });
 
-app.post("/purchases", (req: Request, res: Response) => {
-  //   const newPurchases: TPurchase = {
-  //     userId: req.body.userId as string,
-  //     productId: req.body.productId as string,
-  //     quantity: req.body.quantity as number,
-  //     totalPrice: req.body.totalPrice as number,
-  //   };
-  try {
-    const { userId, productId, quantity, totalPrice } = req.body;
+app.post("/purchases", async (req: Request, res: Response) => {
+    try {
+    const { buyer, total_price } = req.body;
+    const id: string = Math.floor(Date.now() * Math.random()).toString(36);
 
-    if (user.find((item) => item.id === userId) === undefined) {
+    const [buyerExist]: {}[] = await db.raw(`SELECT * FROM users WHERE id = "${buyer}";`)
+
+    if (!buyerExist) {
       res.status(400);
       throw new Error("O id do usuario não está cadastrado");
     }
-    if (product.find((item) => item.id === productId) === undefined) {
-      res.status(400);
-      throw new Error("O id do produto não está cadastrado");
-    }
-    if (quantity <= 0) {
-      res.status(400);
-      throw new Error("A quantidade total de compras deve ser maior que 0");
-    }
-
-    purchase.push({ userId, productId, quantity, totalPrice });
+    await db.raw(`INSERT INTO purchases(id, buyer, total_price) VALUES ("${id}", "${buyer}", "${total_price}");`)
     res.status(201).send("Compra realizada com sucesso");
   } catch (error) {
     if (res.statusCode === 200) {
@@ -292,6 +287,93 @@ app.delete("/products/:id", (req: Request, res: Response) => {
     }
     res.status(200).send("Produto apagado com sucesso");
   } catch (error) {
+    if (res.statusCode === 200) {
+      res.status(500);
+    }
+    res.send(error.message);
+  }
+});
+
+// ------------------------------- //
+
+app.post("/create-table-users", async (req: Request, res: Response) => {
+  try {
+    await db.raw(`
+    CREATE TABLE users (
+      id TEXT PRIMARY KEY NOT NULL UNIQUE,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE, 
+      password TEXT NOT NULL,
+      createdAt TEXT NOT NULL DEFAULT (DATETIME())
+    );
+  `);
+
+    res.status(200).send("Tabela users criada com sucesso!");
+  } catch (error: any) {
+    if (res.statusCode === 200) {
+      res.status(500);
+    }
+    res.send(error.message);
+  }
+});
+
+app.post("/create-table-products", async (req: Request, res: Response) => {
+  try {
+    await db.raw(`
+      CREATE TABLE products (
+        id TEXT PRIMARY KEY NOT NULL UNIQUE,
+        name TEXT NOT NULL,
+        price REAL NOT NULL,
+        description TEXT NOT NULL,
+        image_url TEXT NOT NULL
+      );
+    `);
+
+    res.status(200).send("Tabela products criada com sucesso!");
+  } catch (error: any) {
+    if (res.statusCode === 200) {
+      res.status(500);
+    }
+    res.send(error.message);
+  }
+});
+
+app.post("/create-table-purchases", async (req: Request, res: Response) => {
+  try {
+    await db.raw(`
+      CREATE TABLE purchases (
+        id TEXT PRIMARY KEY UNIQUE NOT NULL,
+        buyer TEXT NOT NULL,
+        total_price REAL NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (DATETIME()),  
+        paid INTEGER NOT NULL DEFAULT(0),   
+        FOREIGN KEY (buyer) REFERENCES users(id) 
+      );
+    `);
+
+    res.status(200).send("Tabela purchases criada com sucesso!");
+  } catch (error: any) {
+    if (res.statusCode === 200) {
+      res.status(500);
+    }
+    res.send(error.message);
+  }
+});
+
+app.post("/create-table-purchases_products", async (req: Request, res: Response) => {
+  try {
+    await db.raw(`
+      CREATE TABLE purchases_products (
+        purchase_id TEXT NOT NULL,
+        product_id TEXT NOT NULL,
+        quantity INTEGER NOT NULL DEFAULT(1),
+        FOREIGN KEY (purchase_id) REFERENCES purchase (id),
+        FOREIGN KEY (product_id) REFERENCES products (id)
+      );
+    `);
+
+    res.status(200).send("Tabela purchases products criada com sucesso!");
+  } catch (error: any) {
     if (res.statusCode === 200) {
       res.status(500);
     }
