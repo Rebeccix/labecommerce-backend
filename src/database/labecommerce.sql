@@ -1,4 +1,4 @@
--- Active: 1679962955574@@127.0.0.1@3306
+-- Active: 1681770398160@@127.0.0.1@3306
 DROP TABLE users;
 DROP TABLE products;
 DROP TABLE purchases;
@@ -51,11 +51,11 @@ VALUES
 -- create products
 INSERT INTO products
 VALUES
-('p001', 'fone', 15.00, 'Acessórios'),
-('p002', 'camisa', 20.00, 'Roupas e calçados'),
-('p003', 'tv', 300.00, 'Eletrônicos'),
-('p004', 'play4', 5000.00, 'Eletrônicos'),
-('p005', 'monitor', 100.00, 'Eletrônicos');
+('2ann2tm1', 'fone', 15.00, 'Acessórios', 'imageurl4');
+-- ('p002', 'camisa', 20.00, 'Roupas e calçados'),
+-- ('p003', 'tv', 300.00, 'Eletrônicos'),
+-- ('p004', 'play4', 5000.00, 'Eletrônicos'),
+-- ('p005', 'monitor', 100.00, 'Eletrônicos');
 
 -- create purchases
 INSERT INTO purchases (id, total_price, buyer_id)
@@ -68,9 +68,10 @@ VALUES
 -- create purchases_products
 INSERT INTO purchases_products
 VALUES
-('up001', 'p002', 2),
-('up002', 'p005', 1),
-('up003', 'p001', 7);
+('275515ry', 'eliv9xfr', 2),
+('275515ry', '2ann2tm1', 1),
+('bpn5hgg0', '5nkn6rm7', 1),
+('9kikrzs8', 'befvpg59', 1);
 
 -- get tables -- 
 
