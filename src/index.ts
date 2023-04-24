@@ -1,22 +1,6 @@
-import {
-  product,
-  purchase,
-  user,
-  createUser,
-  getAllUsers,
-  createProduct,
-  getAllProducts,
-  getProductById,
-  CATEGORY,
-  queryProductsByName,
-  createPurchase,
-  getAllPurchasesFromUserId,
-} from "./database";
 import { db } from "./database/knex";
 import express, { Request, Response } from "express";
 import cors from "cors";
-import { TProduct, TPurchase, TUser } from "./types";
-import { promises } from "dns";
 
 const app = express();
 
@@ -34,8 +18,8 @@ app.get("/ping", (req: Request, res: Response) => {
 
 app.get("/users", async (req: Request, res: Response): Promise<void> => {
   try {
-    const result: TUser[] = await db("users");
-    res.status(200).send({ result });
+    const result: {}[] = await db("users");
+    res.status(200).send(result);
   } catch (error: any) {
     if (res.statusCode === 200) {
       res.status(500);
@@ -44,20 +28,17 @@ app.get("/users", async (req: Request, res: Response): Promise<void> => {
   }
 });
 
-app.get(
-  "/users/:id/purchases",
-  async (req: Request, res: Response): Promise<void> => {
+app.get("/users/:id/purchases", async (req: Request, res: Response): Promise<void> => {
     try {
       const { id } = req.params;
 
-      const [purchaseExist]: {}[] = await db
-        .select("*")
-        .from("purchases")
-        .where({ buyer: id });
+      const [purchaseExist]: {}[] = await db("purchases").where({ buyer: id });
+      
       if (!id) {
         res.status(400);
         throw new Error("Usuário não existe");
       }
+
       res.status(200).send({ purchaseExist });
     } catch (error: any) {
       if (res.statusCode === 200) {
@@ -70,9 +51,9 @@ app.get(
 
 app.get("/products", async (req: Request, res: Response): Promise<void> => {
   try {
-    const result: TProduct[] = await db("products");
-    res.status(200).send({ result });
-  } catch (error) {
+    const result: {}[] = await db("products");
+    res.status(200).send(result);
+  } catch (error: any) {
     if (res.statusCode === 200) {
       res.status(500);
     }
@@ -80,7 +61,7 @@ app.get("/products", async (req: Request, res: Response): Promise<void> => {
   }
 });
 
-app.get("/products/search", async (req: Request, res: Response) => {
+app.get("/products/search", async (req: Request, res: Response): Promise<void> => {
   try {
     const query = req.query.q;
 
@@ -94,11 +75,10 @@ app.get("/products/search", async (req: Request, res: Response) => {
         res.status(400);
         throw new Error("Deve possuir pelo menos um caractere");
       }
-      const result = await db.raw(
-        `SELECT * FROM products WHERE name LIKE '%${query}%'`
-      );
-      console.log(result);
-      res.status(200).send({ result });
+
+      const result = await db("products").where("name", "like", `%${query}%`)
+
+      res.status(200).send(result);
     }
   } catch (error: any) {
     if (res.statusCode === 200) {
@@ -108,24 +88,26 @@ app.get("/products/search", async (req: Request, res: Response) => {
   }
 });
 
-app.get("/products/:id", async (req: Request, res: Response) => {
+app.get("/products/:id", async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-
-    const [productsExist]: {}[] = await db.raw(
-      `SELECT * FROM products WHERE id = "${id}";`
-    );
+  
+    const [productsExist]: {}[] = await db("products").where({ id: id });
 
     if (!productsExist) {
       res.status(400);
       throw new Error("Produto não encontrado");
     }
     res.status(200).send(productsExist);
-  } catch (error: any) {}
+  } catch (error: any) {
+    if (res.statusCode === 200) {
+      res.status(500);
+    }
+    res.send(error.message);
+  }
 });
 
-//
-app.get("/purchases/:id", async (req: Request, res: Response) => {
+app.get("/purchases/:id", async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
 
   const [purchaseExist]: any = await db
@@ -158,16 +140,14 @@ app.get("/purchases/:id", async (req: Request, res: Response) => {
     res.status(200).send({ ...purchaseExist, productList });
 });
 
-app.post("/users", async (req: Request, res: Response) => {
+app.post("/users", async (req: Request, res: Response): Promise<void> => {
   try {
     const id: string = Math.floor(Date.now() * Math.random()).toString(36);
     const { name, email, password } = req.body;
 
-    const [idExist]: {}[] = await db("users").where({ email: email });
+    const [idExist]: {}[] = await db("users").where({ id: id });
 
-    const [emailExist]: {}[] = await db.raw(
-      `SELECT * FROM users WHERE email = "${email}";`
-    );
+    const [emailExist]: {}[] = await db("users").where({email: email})
 
     if (idExist || emailExist) {
       console.log(idExist);
@@ -176,9 +156,17 @@ app.post("/users", async (req: Request, res: Response) => {
       throw new Error("Usuario já está cadastrado");
     }
 
-    await db.raw(
-      `INSERT INTO users(id, name, email, password) VALUES ("${id}", "${name}", "${email}", "${password}");`
-    );
+    const newUsers = {      
+      id,
+      name,
+      email,
+      password
+    }
+
+    await db
+    .insert(newUsers)
+    .into('users')
+
     res.status(201).send("Cadastro realizado com sucesso");
   } catch (error: any) {
     if (res.statusCode === 200) {
@@ -188,24 +176,32 @@ app.post("/users", async (req: Request, res: Response) => {
   }
 });
 
-app.post("/products", async (req: Request, res: Response) => {
+app.post("/products", async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, price, description, image_url } = req.body;
     const id: string = Math.floor(Date.now() * Math.random()).toString(36);
 
-    const [productExist]: {}[] = await db.raw(
-      `SELECT * FROM products WHERE id = "${id}";`
-    );
+    const [productExist]: {}[] = await db('products').where({id:id})
 
     if (productExist) {
       res.status(400);
       throw new Error("Produto já cadastrado");
     }
-    await db.raw(
-      `INSERT INTO products VALUES ("${id}", "${name}", "${price}", "${description}", "${image_url}");`
-    );
+    
+    const newProducts = {
+      id,
+      name,
+      price,
+      description,
+      image_url
+    }
+
+    await db
+    .insert(newProducts)
+    .into('products')
+
     res.status(201).send("Produto cadastrado com sucesso");
-  } catch (error) {
+  } catch (error: any) {
     if (res.statusCode === 200) {
       res.status(500);
     }
@@ -213,24 +209,26 @@ app.post("/products", async (req: Request, res: Response) => {
   }
 });
 
-app.post("/purchases", async (req: Request, res: Response) => {
+app.post("/purchases", async (req: Request, res: Response): Promise<void> => {
   try {
     const { buyer, total_price } = req.body;
     const id: string = Math.floor(Date.now() * Math.random()).toString(36);
 
-    const [buyerExist]: {}[] = await db.raw(
-      `SELECT * FROM users WHERE id = "${buyer}";`
-    );
+    const [buyerExist]: {}[] = await db('users').where({id: buyer})
 
     if (!buyerExist) {
       res.status(400);
       throw new Error("O id do usuario não está cadastrado");
     }
-    await db.raw(
-      `INSERT INTO purchases(id, buyer, total_price) VALUES ("${id}", "${buyer}", "${total_price}");`
-    );
+
+    await db('purchases').insert({
+      id,
+      buyer,
+      total_price,
+    });
+
     res.status(201).send("Compra realizada com sucesso");
-  } catch (error) {
+  } catch (error: any) {
     if (res.statusCode === 200) {
       res.status(500);
     }
@@ -238,11 +236,12 @@ app.post("/purchases", async (req: Request, res: Response) => {
   }
 });
 
-app.put("/users/:id", (req: Request, res: Response) => {
+app.put("/users/:id", async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { email, password } = req.body;
-    const userToModify: TUser = user.find((item) => item.id === id);
+
+    const [userToModify]: {}[] = await db("users").where({ id: id });
 
     if (!email) {
       res.status(400);
@@ -256,10 +255,16 @@ app.put("/users/:id", (req: Request, res: Response) => {
       res.status(400);
       throw new Error("Usuário a ser modificado não existe");
     }
-    userToModify.email = email || userToModify.email;
-    userToModify.password = password || userToModify.password;
+
+    await db('users')
+    .where({ id: id })
+    .update({
+      email,
+      password
+    });
+
     res.status(201).send("Cadastro atualizado com sucesso");
-  } catch (error) {
+  } catch (error: any) {
     if (res.statusCode === 200) {
       res.status(500);
     }
@@ -267,11 +272,11 @@ app.put("/users/:id", (req: Request, res: Response) => {
   }
 });
 
-app.put("/products/:id", (req: Request, res: Response) => {
+app.put("/products/:id", async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { name, price, category } = req.body;
-    const productToModify: TProduct = product.find((item) => item.id === id);
+    const { name, price, description } = req.body;
+    const [productToModify]: {}[] = await db("products").where({ id: id });
 
     if (!name) {
       res.status(400);
@@ -281,7 +286,7 @@ app.put("/products/:id", (req: Request, res: Response) => {
       res.status(400);
       throw new Error("price está undefined");
     }
-    if (!category) {
+    if (!description) {
       res.status(400);
       throw new Error("category está undefined");
     }
@@ -289,11 +294,17 @@ app.put("/products/:id", (req: Request, res: Response) => {
       res.status(400);
       throw new Error("Usuário a ser modificado não existe");
     }
-    productToModify.name = name || productToModify.name;
-    productToModify.price = price || productToModify.price;
-    productToModify.category = category || productToModify.category;
+
+    await db('products')
+    .where({ id: id })
+    .update({
+      name,
+      price,
+      description
+    });
+
     res.status(201).send("Cadastro atualizado com sucesso");
-  } catch (error) {
+  } catch (error: any) {
     if (res.statusCode === 200) {
       res.status(500);
     }
@@ -301,20 +312,18 @@ app.put("/products/:id", (req: Request, res: Response) => {
   }
 });
 
-app.delete("/users/:id", (req: Request, res: Response) => {
+app.delete("/users/:id", async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const index: number = user.findIndex((item) => item.id === id);
+    const [userToDelete]: {}[] = await db("users").where({ id: id });
 
-    if (user.find((item) => item.id === id) === undefined) {
+    if (!userToDelete) {
       res.status(400);
       throw new Error("O usuário não existe");
     }
-    if (index >= 0) {
-      user.splice(index, 1);
-    }
+    await db("users").where({id: id}).del()
     res.status(200).send("Usuario Deletado");
-  } catch (error) {
+  } catch (error: any) {
     if (res.statusCode === 200) {
       res.status(500);
     }
@@ -322,18 +331,16 @@ app.delete("/users/:id", (req: Request, res: Response) => {
   }
 });
 
-app.delete("/products/:id", (req: Request, res: Response) => {
+app.delete("/products/:id", async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const index: number = product.findIndex((item) => item.id === id);
+    const [productsToDelete]: {}[] = await db("products").where({ id: id });
 
-    if (product.find((item) => item.id === id) === undefined) {
+    if (!productsToDelete) {
       res.status(400);
       throw new Error("Produto não existe");
     }
-    if (index >= 0) {
-      product.splice(index, 1);
-    }
+    await db("products").where({id: id}).del()
     res.status(200).send("Produto apagado com sucesso");
   } catch (error) {
     if (res.statusCode === 200) {
@@ -342,93 +349,3 @@ app.delete("/products/:id", (req: Request, res: Response) => {
     res.send(error.message);
   }
 });
-
-// ------------------------------- //
-
-app.post("/create-table-users", async (req: Request, res: Response) => {
-  try {
-    await db.raw(`
-    CREATE TABLE users (
-      id TEXT PRIMARY KEY NOT NULL UNIQUE,
-      name TEXT NOT NULL,
-      email TEXT NOT NULL UNIQUE, 
-      password TEXT NOT NULL,
-      createdAt TEXT NOT NULL DEFAULT (DATETIME())
-    );
-  `);
-
-    res.status(200).send("Tabela users criada com sucesso!");
-  } catch (error: any) {
-    if (res.statusCode === 200) {
-      res.status(500);
-    }
-    res.send(error.message);
-  }
-});
-
-app.post("/create-table-products", async (req: Request, res: Response) => {
-  try {
-    await db.raw(`
-      CREATE TABLE products (
-        id TEXT PRIMARY KEY NOT NULL UNIQUE,
-        name TEXT NOT NULL,
-        price REAL NOT NULL,
-        description TEXT NOT NULL,
-        image_url TEXT NOT NULL
-      );
-    `);
-
-    res.status(200).send("Tabela products criada com sucesso!");
-  } catch (error: any) {
-    if (res.statusCode === 200) {
-      res.status(500);
-    }
-    res.send(error.message);
-  }
-});
-
-app.post("/create-table-purchases", async (req: Request, res: Response) => {
-  try {
-    await db.raw(`
-      CREATE TABLE purchases (
-        id TEXT PRIMARY KEY UNIQUE NOT NULL,
-        buyer TEXT NOT NULL,
-        total_price REAL NOT NULL,
-        created_at TEXT NOT NULL DEFAULT (DATETIME()),  
-        paid INTEGER NOT NULL DEFAULT(0),   
-        FOREIGN KEY (buyer) REFERENCES users(id) 
-      );
-    `);
-
-    res.status(200).send("Tabela purchases criada com sucesso!");
-  } catch (error: any) {
-    if (res.statusCode === 200) {
-      res.status(500);
-    }
-    res.send(error.message);
-  }
-});
-
-app.post(
-  "/create-table-purchases_products",
-  async (req: Request, res: Response) => {
-    try {
-      await db.raw(`
-      CREATE TABLE purchases_products (
-        purchase_id TEXT NOT NULL,
-        product_id TEXT NOT NULL,
-        quantity INTEGER NOT NULL DEFAULT(1),
-        FOREIGN KEY (purchase_id) REFERENCES purchase (id),
-        FOREIGN KEY (product_id) REFERENCES products (id)
-      );
-    `);
-
-      res.status(200).send("Tabela purchases products criada com sucesso!");
-    } catch (error: any) {
-      if (res.statusCode === 200) {
-        res.status(500);
-      }
-      res.send(error.message);
-    }
-  }
-);

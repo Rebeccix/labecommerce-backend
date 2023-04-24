@@ -6,37 +6,40 @@ DROP TABLE purchases_products;
 -- create tables --
 
 -- create users table
-CREATE TABLE users(
+CREATE TABLE users (
     id TEXT PRIMARY KEY NOT NULL UNIQUE,
+    name TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE, 
-    password TEXT NOT NULL
+    password TEXT NOT NULL,
+    createdAt TEXT NOT NULL DEFAULT (DATETIME())
 );
 
 -- create products table
-CREATE TABLE products(
+CREATE TABLE products (
     id TEXT PRIMARY KEY NOT NULL UNIQUE,
     name TEXT NOT NULL,
     price REAL NOT NULL,
-    category TEXT NOT NULL
+    description TEXT NOT NULL,
+    image_url TEXT NOT NULL
 );
 
 -- create purchases table
-CREATE TABLE purchases(
+CREATE TABLE purchases (
     id TEXT PRIMARY KEY UNIQUE NOT NULL,
+    buyer TEXT NOT NULL,
     total_price REAL NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (DATETIME()),  
     paid INTEGER NOT NULL DEFAULT(0),   
-    delivered_at TEXT DEFAULT (DATETIME()),  
-    buyer_id TEXT NOT NULL,
-    FOREIGN KEY (buyer_id) REFERENCES users(id) 
+    FOREIGN KEY (buyer) REFERENCES users(id) 
 );
 
 -- create purchases_products table
-CREATE TABLE purchases_products(
+CREATE TABLE purchases_products (
     purchase_id TEXT NOT NULL,
     product_id TEXT NOT NULL,
     quantity INTEGER NOT NULL DEFAULT(1),
-	FOREIGN KEY (purchase_id) REFERENCES purchase (id),
-	FOREIGN KEY (product_id) REFERENCES products (id)
+    FOREIGN KEY (purchase_id) REFERENCES purchase (id),
+    FOREIGN KEY (product_id) REFERENCES products (id)
 );
 
 -- insert into to create table --
